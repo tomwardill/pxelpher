@@ -7,8 +7,8 @@ from dataclasses import dataclass
 class PacketMode(Enum):
 
     DISCOVER = 1
-    OFFER = 1
-    REQUEST = 1
+    OFFER = 2
+    REQUEST = 3
 
 
 class DHCPOption:
@@ -17,6 +17,9 @@ class DHCPOption:
         self.code = code
         self.length = length
         self.value = value
+
+    def __repr__(self):
+        return "DHCP Option {}: {}".format(self.code, self.value)
 
 
 @dataclass
@@ -36,6 +39,9 @@ class DiscoverPacket:
     SName: str
     File: str
     RawOptions: bytearray
+
+    def __repr__(self):
+        return "{} from {}".format(self.mode, self.hardware_address)
 
     @property
     def is_broadcast(self):
