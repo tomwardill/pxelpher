@@ -1,4 +1,5 @@
 from pxelpher.protocol.dhcp import (
+    DHCPOption,
     DHCPPacket,
     PacketMode,
 )
@@ -30,3 +31,8 @@ def test_packet_type_parsing():
 def test_make_offer():
     discover_packet = DHCPPacket.from_network(sample_discover_packet)
     send_offer(None, discover_packet)
+
+
+def test_option_encoding():
+    ack_option = DHCPOption(53, 1, (5).to_bytes(1, byteorder="big").decode())
+    assert ack_option.encoded() == b'5\x01\x05'

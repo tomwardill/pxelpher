@@ -12,7 +12,6 @@ class PacketMode(Enum):
 
 
 class DHCPOption:
-
     def __init__(self, code, length, value):
         self.code = code
         self.length = length
@@ -22,21 +21,17 @@ class DHCPOption:
         return "DHCP Option {}: {}".format(self.code, self.value)
 
     def encoded(self):
-        return '{}{}{}'.format(
-            chr(self.code),
-            chr(self.length),
-            self.value
-        ).encode()
+        return "{}{}{}".format(chr(self.code), chr(self.length), self.value).encode()
 
 
 def f_i2h(int_to_format):
-    return '0x{:02x}'.format(int_to_format)
+    return "0x{:02x}".format(int_to_format)
 
 
 def ip_to_hex(ip):
-    return bytearray(int(x) for x in ip.split('.'))
-    #return (''.join(chr(int(x)) for x in ip.split('.'))).encode()
-    #return '0x{}'.format(''.join('{:02x}'.format(int(x)) for x in ip.split('.')).upper())
+    return bytearray(int(x) for x in ip.split("."))
+    # return (''.join(chr(int(x)) for x in ip.split('.'))).encode()
+    # return '0x{}'.format(''.join('{:02x}'.format(int(x)) for x in ip.split('.')).upper())
 
 
 @dataclass
@@ -68,7 +63,7 @@ class DHCPPacket:
     @property
     def magic_cookie(self):
         cookie_bytes = self.RawOptions[0:4]
-        return '.'.join(str(int(i)) for i in cookie_bytes)
+        return ".".join(str(int(i)) for i in cookie_bytes)
 
     @property
     def raw_magic_cookie(self):
@@ -84,19 +79,16 @@ class DHCPPacket:
             i = i + 1
             length = without_magic_cookie[i]
             i = i + 1
-            value = without_magic_cookie[i:i+length]
+            value = without_magic_cookie[i : i + length]
             i = i + length
-            available_options.append(DHCPOption(
-                code, length, value
-            ))
+            available_options.append(DHCPOption(code, length, value))
         return available_options
 
     @property
     def mode(self):
         for option in self.Options:
             if option.code == 53:
-                return PacketMode(
-                    int.from_bytes(option.value, byteorder='big'))
+                return PacketMode(int.from_bytes(option.value, byteorder="big"))
         raise ValueError("No mode Option found")
 
     @property
@@ -120,7 +112,7 @@ class DHCPPacket:
             HLen=packet[2],
             Hops=packet[3],
             XID=binascii.hexlify(packet[4:8]),
-            Secs=int.from_bytes(packet[8:10], byteorder='big'),
+            Secs=int.from_bytes(packet[8:10], byteorder="big"),
             Flags=packet[10:12],
             CiAddr=packet[12:16],
             YiAddr=packet[16:20],
@@ -130,7 +122,7 @@ class DHCPPacket:
             SName=packet[44:108],
             File=packet[108:236],
             RawOptions=packet[236:],
-            RawPacket=packet
+            RawPacket=packet,
         )
         return discover
 
@@ -138,27 +130,71 @@ class DHCPPacket:
     def make_offer(discover_packet):
         raw_options = discover_packet.raw_magic_cookie
         offer_option = DHCPOption(53, 1, chr(2))
-        raw_options = raw_options + offer_option.encoded() + b'\xff'
+        raw_options = raw_options + offer_option.encoded() + b"\xff"
         offer = DHCPPacket(
             Op=chr(2).encode(),
             HType=chr(1).encode(),
             HLen=chr(6).encode(),
             Hops=chr(0).encode(),
             XID=binascii.unhexlify(discover_packet.XID),
-            Secs=b'\x00\x00',
-            Flags=b'\x00\x00',
-            CiAddr=b'\x00\x00\x00\x00',
-            YiAddr=ip_to_hex('192.168.58.2'),
-            SiAddr=ip_to_hex('192.168.58.1'),
-            GiAddr=ip_to_hex('0.0.0.0'),
+            Secs=b"\x00\x00",
+            Flags=b"\x00\x00",
+            CiAddr=b"\x00\x00\x00\x00",
+            YiAddr=ip_to_hex("192.168.58.2"),
+            SiAddr=ip_to_hex("192.168.58.1"),
+            GiAddr=ip_to_hex("0.0.0.0"),
             CHAddr=discover_packet.CHAddr,
             SName=discover_packet.SName,
             File=discover_packet.File,
             RawOptions=raw_options,
-            RawPacket='unknown'
+            RawPacket="unknown",
+        )
+        return offer
+
+    @staticmethod
+    def make_acknowledgement(request_packet):
+        raw_options = request_packet.raw_magic_cookie
+        ack_option = DHCPOption(53, 1, ((5).to_bytes(1, byteorder="big")).decode())
+        lease_length_option = DHCPOption(51, 4, (360).to_bytes(4, byteorder="big").decode())
+        raw_options = (
+            raw_options + ack_option.encoded() + lease_length_option.encoded() + b"\xff"
+        )
+        offer = DHCPPacket(
+            Op=chr(2).encode(),
+            HType=chr(1).encode(),
+            HLen=chr(6).encode(),
+            Hops=chr(0).encode(),
+            XID=binascii.unhexlify(request_packet.XID),
+            Secs=b"\x00\x00",
+            Flags=b"\x00\x00",
+            CiAddr=b"\x00\x00\x00\x00",
+            YiAddr=ip_to_hex("192.168.58.2"),
+            SiAddr=ip_to_hex("192.168.58.1"),
+            GiAddr=ip_to_hex("0.0.0.0"),
+            CHAddr=request_packet.CHAddr,
+            SName=request_packet.SName,
+            File=request_packet.File,
+            RawOptions=raw_options,
+            RawPacket="unknown",
         )
         return offer
 
     def make_raw(self):
-        packet = self.Op + self.HType + self.HLen + self.Hops + self.XID + self.Secs + self.Flags + self.CiAddr + self.YiAddr + self.SiAddr + self.GiAddr + self.CHAddr + self.SName + self.File + self.RawOptions
+        packet = (
+            self.Op
+            + self.HType
+            + self.HLen
+            + self.Hops
+            + self.XID
+            + self.Secs
+            + self.Flags
+            + self.CiAddr
+            + self.YiAddr
+            + self.SiAddr
+            + self.GiAddr
+            + self.CHAddr
+            + self.SName
+            + self.File
+            + self.RawOptions
+        )
         return packet
