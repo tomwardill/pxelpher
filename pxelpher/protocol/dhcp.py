@@ -155,7 +155,9 @@ class DHCPPacket:
     def make_acknowledgement(request_packet):
         raw_options = request_packet.raw_magic_cookie
         ack_option = DHCPOption(53, 1, ((5).to_bytes(1, byteorder="big")).decode())
-        lease_length_option = DHCPOption(51, 4, (360).to_bytes(4, byteorder="big").decode())
+        lease_length_option = DHCPOption(
+            51, 4, (360).to_bytes(4, byteorder="big").decode()
+        )
         raw_options = (
             raw_options + ack_option.encoded() + lease_length_option.encoded() + b"\xff"
         )
