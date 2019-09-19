@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 from pxelpher.protocol.dhcp import (
     DHCPOption,
     DHCPPacket,
@@ -29,8 +31,9 @@ def test_packet_type_parsing():
 
 
 def test_make_offer():
+    socket_mock = MagicMock()
     discover_packet = DHCPPacket.from_network(sample_discover_packet)
-    send_offer(None, discover_packet)
+    send_offer(socket_mock, discover_packet)
 
 
 def test_option_encoding():
