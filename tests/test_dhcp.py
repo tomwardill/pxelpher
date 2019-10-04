@@ -37,5 +37,5 @@ def test_make_offer():
 
 
 def test_option_encoding():
-    ack_option = DHCPOption(53, 1, (5).to_bytes(1, byteorder="big").decode())
+    ack_option = DHCPOption(53, 1, (5).to_bytes(1, byteorder="big"))
     assert ack_option.encoded() == b'5\x01\x05'

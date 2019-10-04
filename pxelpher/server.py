@@ -12,12 +12,14 @@ sample_request_packet = b"\x01\x01\x06\x00\xd5:\xc1z\x00\x12\x00\x00\x00\x00\x00
 def send_offer(socket, discover_packet):
     offer_packet = DHCPPacket.make_offer(discover_packet)
     raw_packet = offer_packet.make_raw()
+    print("< {}".format(offer_packet))
     socket.sendto(raw_packet, ("255.255.255.255", 68))
 
 
 def send_acknowledgment(socket, request_packet):
     ack_packet = DHCPPacket.make_acknowledgement(request_packet)
     raw_packet = ack_packet.make_raw()
+    print("< {}".format(ack_packet))
     socket.sendto(raw_packet, ("255.255.255.255", 68))
 
 
@@ -41,7 +43,7 @@ def main():
         if data:
             packet = DHCPPacket.from_network(data)
             packet_log.write(packet.RawPacket)
-            print(packet)
+            print("> {}".format(packet))
             if packet.mode == PacketMode.DISCOVER:
                 send_offer(s, packet)
             elif packet.mode == PacketMode.REQUEST:

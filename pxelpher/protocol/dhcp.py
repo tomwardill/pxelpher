@@ -1,5 +1,6 @@
 import binascii
 from enum import Enum
+from ipaddress import ip_address
 
 from dataclasses import dataclass
 
@@ -9,6 +10,7 @@ class PacketMode(Enum):
     DISCOVER = 1
     OFFER = 2
     REQUEST = 3
+    ACK = 5
 
 
 class DHCPOption:
@@ -21,7 +23,12 @@ class DHCPOption:
         return "DHCP Option {}: {}".format(self.code, self.value)
 
     def encoded(self):
-        return "{}{}{}".format(chr(self.code), chr(self.length), self.value).encode()
+        encoded = bytearray()
+        encoded += (self.code).to_bytes(1, byteorder="big")
+        encoded += (self.length).to_bytes(1, byteorder="big")
+        encoded += self.value
+        return encoded
+        #return "{}{}{}".format(chr(self.code), chr(self.length), self.value).encode()
 
 
 def f_i2h(int_to_format):
@@ -29,9 +36,16 @@ def f_i2h(int_to_format):
 
 
 def ip_to_hex(ip):
+    # This should use ip_address?
     return bytearray(int(x) for x in ip.split("."))
-    # return (''.join(chr(int(x)) for x in ip.split('.'))).encode()
-    # return '0x{}'.format(''.join('{:02x}'.format(int(x)) for x in ip.split('.')).upper())
+
+
+def encode_options(original_packet, options):
+    encoded_options = original_packet.raw_magic_cookie
+    for option in options:
+        encoded_options += option.encoded()
+    encoded_options += b"\xff"
+    return encoded_options
 
 
 @dataclass
@@ -128,9 +142,15 @@ class DHCPPacket:
 
     @staticmethod
     def make_offer(discover_packet):
-        raw_options = discover_packet.raw_magic_cookie
-        offer_option = DHCPOption(53, 1, chr(2))
-        raw_options = raw_options + offer_option.encoded() + b"\xff"
+        options = [
+            DHCPOption(1, 4, ip_address("255.255.255.0").packed),
+            DHCPOption(6, 4, ip_address("192.168.58.1").packed),
+            DHCPOption(28, 4, ip_address("192.168.58.255").packed),
+            DHCPOption(53, 1, (2).to_bytes(1, byteorder="big")),
+            DHCPOption(66, 4, ip_address("192.168.58.1").packed),
+        ]
+        raw_options = encode_options(discover_packet, options)
+
         offer = DHCPPacket(
             Op=chr(2).encode(),
             HType=chr(1).encode(),
@@ -153,14 +173,15 @@ class DHCPPacket:
 
     @staticmethod
     def make_acknowledgement(request_packet):
-        raw_options = request_packet.raw_magic_cookie
-        ack_option = DHCPOption(53, 1, ((5).to_bytes(1, byteorder="big")).decode())
-        lease_length_option = DHCPOption(
-            51, 4, (360).to_bytes(4, byteorder="big").decode()
-        )
-        raw_options = (
-            raw_options + ack_option.encoded() + lease_length_option.encoded() + b"\xff"
-        )
+        options = [
+            DHCPOption(1, 4, ip_address("255.255.255.0").packed),
+            DHCPOption(6, 4, ip_address("192.168.58.1").packed),
+            DHCPOption(28, 4, ip_address("192.168.58.255").packed),
+            DHCPOption(53, 1, (5).to_bytes(1, byteorder="big")),
+            DHCPOption(51, 4, (360).to_bytes(4, byteorder="big")),
+        ]
+        raw_options = encode_options(request_packet, options)
+
         offer = DHCPPacket(
             Op=chr(2).encode(),
             HType=chr(1).encode(),
