@@ -9,7 +9,8 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'dhcp_server=pxelpher.server:main',
+            'dhcp_server=pxelpher.dhcp_server:main',
+            'tftp_server=pxelpher.tftp_server:main',
         ],
     },
 )

@@ -25,7 +25,7 @@ def send_acknowledgment(socket, request_packet):
 
 def main():
 
-    packet_log = open("packet.log", "wb")
+    packet_log = open("dhcp-packet.log", "wb")
 
     parser = argparse.ArgumentParser()
     parser.add_argument("interface", help="Interface to listen on")
